@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StarRocks应用开发学习方案</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* 基础样式 */
+    :root {
+      --color-primary: #4f46e5;
+      --color-primary-light: #818cf8;
+      --color-secondary: #10b981;
+      --color-accent: #6366f1;
+      --color-background: #ffffff;
+      --color-text: #1f2937;
+      --color-text-light: #6b7280;
+      --color-card: #f9fafb;
+      --color-card-border: #e5e7eb;
+      --color-card-shadow: rgba(0, 0, 0, 0.1);
+    }
+
+    .dark {
+      --color-primary: #818cf8;
+      --color-primary-light: #a5b4fc;
+      --color-secondary: #34d399;
+      --color-accent: #8b5cf6;
+      --color-background: #111827;
+      --color-text: #f9fafb;
+      --color-text-light: #9ca3af;
+      --color-card: #1f2937;
+      --color-card-border: #374151;
+      --color-card-shadow: rgba(0, 0, 0, 0.3);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--color-background);
+      color: var(--color-text);
+      transition: background-color 0.3s, color 0.3s;
+      scroll-behavior: smooth;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 700;
+      color: var(--color-text);
+      transition: color 0.3s;
+    }
+
+    a {
+      color: var(--color-primary);
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-primary-light);
+    }
+
+    /* 卡片样式 */
+    .card {
+      background-color: var(--color-card);
+      border: 1px solid var(--color-card-border);
+      box-shadow: 0 4px 6px var(--color-card-shadow);
+      transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s, border-color 0.3s;
+      border-radius: 0.75rem;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 15px var(--color-card-shadow);
+    }
+
+    /* 按钮样式 */
+    .btn {
+      transition: transform 0.2s, background-color 0.2s, color 0.2s;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* 导航高亮 */
+    .nav-link {
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background-color: var(--color-primary);
+      transition: width 0.3s;
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    .nav-link.active::after {
+      width: 100%;
+    }
+
+    /* 进度条 */
+    .progress-bar {
+      height: 8px;
+      background-color: var(--color-primary-light);
+      border-radius: 4px;
+      transition: width 1s ease-in-out;
+    }
+
+    /* 动画效果 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    .fade-in-delay-1 {
+      animation: fadeIn 0.6s ease-out 0.1s forwards;
+      opacity: 0;
+    }
+
+    .fade-in-delay-2 {
+      animation: fadeIn 0.6s ease-out 0.2s forwards;
+      opacity: 0;
+    }
+
+    .fade-in-delay-3 {
+      animation: fadeIn 0.6s ease-out 0.3s forwards;
+      opacity: 0;
+    }
+
+    /* 时间线 */
+    .timeline {
+      position: relative;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 24px;
+      width: 2px;
+      background-color: var(--color-card-border);
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-left: 50px;
+      margin-bottom: 20px;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: 17px;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: var(--color-primary);
+      border: 3px solid var(--color-background);
+      z-index: 1;
+    }
+
+    /* 模态框 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .modal.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      background-color: var(--color-card);
+      border-radius: 1rem;
+      transform: scale(0.95);
+      transition: transform 0.3s;
+    }
+
+    .modal.active .modal-content {
+      transform: scale(1);
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 640px) {
+      .timeline::before {
+        left: 18px;
+      }
+      
+      .timeline-dot {
+        left: 11px;
+        width: 14px;
+        height: 14px;
+      }
+      
+      .timeline-item {
+        padding-left: 40px;
+      }
+    }
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--color-card);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-text-light);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+
+    /* 工具提示 */
+    .tooltip {
+      position: relative;
+    }
+
+    .tooltip-text {
+      visibility: hidden;
+      position: absolute;
+      z-index: 10;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--color-card);
+      color: var(--color-text);
+      text-align: center;
+      padding: 6px 12px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      box-shadow: 0 2px 8px var(--color-card-shadow);
+      border: 1px solid var(--color-card-border);
+      white-space: nowrap;
+      font-size: 0.875rem;
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* 阅读进度 */
+    #reading-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 3px;
+      background-color: var(--color-primary);
+      z-index: 9999;
+      transition: width 0.2s;
+    }
+
+    /* 懒加载区域 */
+    .lazy-section {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s, transform 0.8s;
+    }
+
+    .lazy-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* 设置锚点的偏移，避免被导航栏遮挡 */
+    section[id] {
+      scroll-margin-top: 80px;
+    }
+  </style>
+</head>
+<body class="relative min-h-screen pb-32">
+  <!-- 阅读进度条 -->
+  <div id="reading-progress"></div>
+
+  <!-- 导航栏 -->
+  <nav class="sticky top-0 z-40 backdrop-filter backdrop-blur-lg bg-opacity-80 dark:bg-opacity-80" style="background-color: var(--color-background);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <span class="text-xl font-bold text-primary">
+            <i class="fas fa-database mr-2" style="color: var(--color-primary);"></i>
+            StarRocks学习
+          </span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="hidden md:flex space-x-8">
+            <a href="#overview" class="nav-link text-base font-medium" style="color: var(--color-text-light);">概览</a>
+            <a href="#analysis" class="nav-link text-base font-medium" style="color: var(--color-text-light);">知识分析</a>
+            <a href="#ai-tools" class="nav-link text-base font-medium" style="color: var(--color-text-light);">AI协作</a>
+            <a href="#learning-path" class="nav-link text-base font-medium" style="color: var(--color-text-light);">学习路径</a>
+            <a href="#projects" class="nav-link text-base font-medium" style="color: var(--color-text-light);">实践项目</a>
+          </div>
+          <button id="theme-toggle" class="p-2 rounded-full focus:outline-none" aria-label="切换深色/浅色模式">
+            <i id="theme-icon" class="fas fa-moon" style="color: var(--color-text);"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 移动端导航菜单 -->
+  <div class="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+    <div class="flex justify-around">
+      <a href="#overview" class="flex flex-col items-center py-2 px-3">
+        <i class="fas fa-home text-lg" style="color: var(--color-text-light);"></i>
+        <span class="text-xs mt-1" style="color: var(--color-text-light);">概览</span>
+      </a>
+      <a href="#analysis" class="flex flex-col items-center py-2 px-3">
+        <i class="fas fa-brain text-lg" style="color: var(--color-text-light);"></i>
+        <span class="text-xs mt-1" style="color: var(--color-text-light);">知识分析</span>
+      </a>
+      <a href="#ai-tools" class="flex flex-col items-center py-2 px-3">
+        <i class="fas fa-robot text-lg" style="color: var(--color-text-light);"></i>
+        <span class="text-xs mt-1" style="color: var(--color-text-light);">AI协作</span>
+      </a>
+      <a href="#learning-path" class="flex flex-col items-center py-2 px-3">
+        <i class="fas fa-route text-lg" style="color: var(--color-text-light);"></i>
+        <span class="text-xs mt-1" style="color: var(--color-text-light);">学习路径</span>
+      </a>
+      <a href="#projects" class="flex flex-col items-center py-2 px-3">
+        <i class="fas fa-laptop-code text-lg" style="color: var(--color-text-light);"></i>
+        <span class="text-xs mt-1" style="color: var(--color-text-light);">实践项目</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 主内容区 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- 头部 -->
+    <header id="overview" class="text-center mb-20 fade-in">
+      <h1 class="text-4xl sm:text-5xl font-extrabold mb-6" style="color: var(--color-primary);">StarRocks应用开发学习方案</h1>
+      <p class="text-xl max-w-3xl mx-auto mb-8" style="color: var(--color-text-light);">从理解层级到应用、分析层级的系统化学习指南</p>
+      <div class="flex flex-col sm:flex-row justify-center gap-4 mb-12">
+        <a href="#learning-path" class="btn inline-flex items-center px-6 py-3 rounded-lg text-white font-medium" style="background-color: var(--color-primary);">
+          <i class="fas fa-graduation-cap mr-2"></i>开始学习
+        </a>
+        <a href="#ai-tools" class="btn inline-flex items-center px-6 py-3 rounded-lg font-medium bg-gray-100 dark:bg-gray-800" style="color: var(--color-primary);">
+          <i class="fas fa-robot mr-2"></i>AI工具推荐
+        </a>
+      </div>
+      
+      <div class="max-w-3xl mx-auto card p-6 text-left">
+        <h3 class="text-xl font-bold mb-4 flex items-center">
+          <i class="fas fa-info-circle mr-2" style="color: var(--color-primary);"></i>当前学习状态
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="text-center">
+            <p class="text-sm mb-1" style="color: var(--color-text-light);">当前层级</p>
+            <p class="text-lg font-semibold">理解</p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm mb-1" style="color: var(--color-text-light);">目标层级</p>
+            <p class="text-lg font-semibold">应用、分析</p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm mb-1" style="color: var(--color-text-light);">总体进度</p>
+            <div class="bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-2">
+              <div class="progress-bar" style="width: 25%;"></div>
+            </div>
+          </div>
+        </div>
+        <p class="text-sm" style="color: var(--color-text-light);">
+          StarRocks是一款高性能的分布式分析型数据库，本学习方案将帮助你从基础理解提升到实际应用开发和性能分析能力。
+        </p>
+      </div>
+    </header>
+
+    <!-- 知识点分析 -->
+    <section id="analysis" class="mb-20 lazy-section">
+      <h2 class="text-3xl font-bold mb-8 flex items-center">
+        <i class="fas fa-brain mr-3" style="color: var(--color-primary);"></i>
+        知识点分析
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="card p-6">
+          <h3 class="text-xl font-bold mb-4">布鲁姆分类层级定位</h3>
+          <div class="relative pt-1">
+            <div class="flex mb-2 items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full" style="background-color: var(--color-primary-light); color: var(--color-text);">
+                  学习进程
+                </span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-semibold inline-block" style="color: var(--color-text-light);">
+                  2/6 层级
+                </span>
+              </div>
+            </div>
+            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200 dark:bg-gray-700">
+              <div style="width:33%; background-color: var(--color-primary);" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center"></div>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="flex items-start">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: var(--color-primary); color: white;">1</div>
+              <div>
+                <h4 class="font-semibold">记忆</h4>
+                <p class="text-sm" style="color: var(--color-text-light);">能够记住StarRocks的基本概念和术语</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: var(--color-primary); color: white;">2</div>
+              <div>
+                <h4 class="font-semibold">理解 <span class="text-xs py-1 px-2 rounded" style="background-color: var(--color-primary-light); color: white;">当前</span></h4>
+                <p class="text-sm" style="color: var(--color-text-light);">能够解释StarRocks的功能和原理</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-gray-300 dark:bg-gray-700" style="color: var(--color-text);">3</div>
+              <div>
+                <h4 class="font-semibold">应用 <span class="text-xs py-1 px-2 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">目标</span></h4>
+                <p class="text-sm" style="color: var(--color-text-light);">能够使用StarRocks构建数据应用</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-gray-300 dark:bg-gray-700" style="color: var(--color-text);">4</div>
+              <div>
+                <h4 class="font-semibold">分析 <span class="text-xs py-1 px-2 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">目标</span></h4>
+                <p class="text-sm" style="color: var(--color-text-light);">能够分析StarRocks性能问题和优化方案</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-gray-300 dark:bg-gray-700" style="color: var(--color-text);">5</div>
+              <div>
+                <h4 class="font-semibold">评估</h4>
+                <p class="text-sm" style="color: var(--color-text-light);">能够评价不同的StarRocks架构方案</p>
+              </div>
+            </div>
+            <div class="flex items-start">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-gray-300 dark:bg-gray-700" style="color: var(--color-text);">6</div>
+              <div>
+                <h4 class="font-semibold">创造</h4>
+                <p class="text-sm" style="color: var(--color-text-light);">能够创新性地设计StarRocks解决方案</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="card p-6">
+            <h3 class="text-xl font-bold mb-4">认知难度评估</h3>
+            <div class="flex items-center mb-4">
+              <div class="w-full bg-gray-200 rounded-full dark:bg-gray-700 h-2.5 mr-2">
+                <div class="bg-yellow-500 h-2.5 rounded-full" style="width: 65%"></div>
+              </div>
+              <span class="text-sm font-medium" style="color: var(--color-text-light);">中高难度</span>
+            </div>
+            <p class="mb-4" style="color: var(--color-text);">StarRocks作为一款高性能分析型数据库，涉及以下多维度知识：</p>
+            <ul class="space-y-2 mb-4">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>分布式系统架构</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>SQL查询引擎原理</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>OLAP分析技术</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>性能优化与调优</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card p-6">
+            <h3 class="text-xl font-bold mb-4">前置知识确认</h3>
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <input type="checkbox" id="prerequisite1" class="w-4 h-4 mr-2">
+                <label for="prerequisite1" class="cursor-pointer">数据库基础知识（SQL语法）</label>
+              </div>
+              <div class="flex items-center">
+                <input type="checkbox" id="prerequisite2" class="w-4 h-4 mr-2">
+                <label for="prerequisite2" class="cursor-pointer">基本编程能力（Java/Python等）</label>
+              </div>
+              <div class="flex items-center">
+                <input type="checkbox" id="prerequisite3" class="w-4 h-4 mr-2">
+                <label for="prerequisite3" class="cursor-pointer">数据分析概念理解</label>
+              </div>
+              <div class="flex items-center">
+                <input type="checkbox" id="prerequisite4" class="w-4 h-4 mr-2">
+                <label for="prerequisite4" class="cursor-pointer">OLAP与OLTP的基本区别认知</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI协作方案 -->
+    <section id="ai-tools" class="mb-20 lazy-section">
+      <h2 class="text-3xl font-bold mb-8 flex items-center">
+        <i class="fas fa-robot mr-3" style="color: var(--color-primary);"></i>
+        AI协作方案
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="card p-6 hover:border-blue-500 transition-all">
+          <div class="flex items-center mb-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: #e0f2fe;">
+              <i class="fas fa-comment-dots text-xl" style="color: #0284c7;"></i>
+            </div>
+            <h3 class="text-xl font-bold">Kimi</h3>
+          </div>
+          <p class="mb-3" style="color: var(--color-text-light);">适用于StarRocks概念理解和SQL问题解答</p>
+          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h4 class="font-medium mb-2">推荐问题示例:</h4>
+            <ul class="space-y-2 text-sm" style="color: var(--color-text-light);">
+              <li class="flex items-start">
+                <i class="fas fa-angle-right mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>"StarRocks的核心架构是什么？"</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-angle-right mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>"如何优化StarRocks的复杂查询？"</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card p-6 hover:border-purple-500 transition-all">
+          <div class="flex items-center mb-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: #f3e8ff;">
+              <i class="fas fa-brain text-xl" style="color: #9333ea;"></i>
+            </div>
+            <h3 class="text-xl font-bold">Deepseek</h3>
+          </div>
+          <p class="mb-3" style="color: var(--color-text-light);">深入探索StarRocks源码和架构设计思路</p>
+          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h4 class="font-medium mb-2">推荐问题示例:</h4>
+            <ul class="space-y-2 text-sm" style="color: var(--color-text-light);">
+              <li class="flex items-start">
+                <i class="fas fa-angle-right mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>"StarRocks与其他OLAP系统的区别"</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-angle-right mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>"StarRocks的查询优化策略分析"</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card p-6 hover:border-green-500 transition-all">
+          <div class="flex items-center mb-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: #dcfce7;">
+              <i class="fas fa-comments text-xl" style="color: #16a34a;"></i>
+            </div>
+            <h3 class="text-xl font-bold">文心一言</h3>
+          </div>
+          <p class="mb-3" style="color: var(--color-text-light);">获取中文文档解释和实际案例分析</p>
+          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h4 class="font-medium mb-2">推荐问题示例:</h4>
+            <ul class="space-y-2 text-sm" style="color: var(--color-text-light);">
+              <li class="flex items-start">
+                <i class="fas fa-angle-right mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>"StarRocks在中国企业中的应用案例"</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-angle-right mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>"StarRocks中文学习资源汇总"</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="card p-6">
+          <h3 class="text-xl font-bold mb-4">使用策略</h3>
+          <div class="space-y-6">
+            <div>
+              <h4 class="font-semibold mb-2 flex items-center">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center mr-2" style="background-color: var(--color-primary); color: white;">1</span>
+                概念学习阶段
+              </h4>
+              <p class="text-sm pl-10" style="color: var(--color-text-light);">向AI助手提问StarRocks的基础概念，理解其架构设计和工作原理。使用多个AI工具交叉验证信息的准确性。</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-2 flex items-center">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center mr-2" style="background-color: var(--color-primary); color: white;">2</span>
+                技能实践阶段
+              </h4>
+              <p class="text-sm pl-10" style="color: var(--color-text-light);">将实际SQL问题提交给AI工具分析优化，学习查询性能调优技巧。使用AI生成测试数据和示例查询，进行实践练习。</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-2 flex items-center">
+                <span class="w-8 h-8 rounded-full flex items-center justify-center mr-2" style="background-color: var(--color-primary); color: white;">3</span>
+                问题解决阶段
+              </h4>
+              <p class="text-sm pl-10" style="color: var(--color-text-light);">将遇到的性能瓶颈和错误描述给AI工具，分析可能的原因和解决方案。使用AI生成的调优建议进行测试和验证。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-xl font-bold mb-4">注意事项</h3>
+          <ul class="space-y-3">
+            <li class="flex items-start">
+              <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+              <p style="color: var(--color-text);">AI工具生成的代码需在实际环境中验证，不能完全依赖AI的输出</p>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+              <p style="color: var(--color-text);">关于StarRocks的核心原理，需通过官方文档确认，确保准确性</p>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+              <p style="color: var(--color-text);">性能调优建议需结合实际场景测试，不同环境下可能有差异</p>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+              <p style="color: var(--color-text);">AI可能基于旧版StarRocks知识，需关注版本差异</p>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-lightbulb text-yellow-400 mt-1 mr-3"></i>
+              <p style="color: var(--color-text);">推荐使用AI作为辅助工具，而非替代实际动手实践</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 学习路径规划 -->
+    <section id="learning-path" class="mb-20 lazy-section">
+      <h2 class="text-3xl font-bold mb-8 flex items-center">
+        <i class="fas fa-route mr-3" style="color: var(--color-primary);"></i>
+        学习路径规划
+      </h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div class="card p-6">
+          <div class="flex items-center mb-6">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: var(--color-primary-light);">
+              <i class="fas fa-chalkboard-teacher text-xl text-white"></i>
+            </div>
+            <h3 class="text-xl font-bold">费曼技巧应用</h3>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold mb-2">学习阶段</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">通过StarRocks官方文档学习基础概念，使用AI工具解释不理解的技术点</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-2">教授阶段</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">向AI工具"教授"你对StarRocks的理解，在技术论坛回答初学者问题</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-2">反馈循环</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">让AI指出解释中的错误或不足，根据反馈重新学习并完善理解</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <div class="flex items-center mb-6">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: var(--color-primary-light);">
+              <i class="fas fa-calendar-alt text-xl text-white"></i>
+            </div>
+            <h3 class="text-xl font-bold">间隔复习时间表</h3>
+          </div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <h4 class="font-semibold mb-1">第1天</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">初次学习后，5分钟、30分钟、12小时各复习一次核心概念</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <h4 class="font-semibold mb-1">第2天</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">复习前一天内容，巩固记忆</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <h4 class="font-semibold mb-1">第3天</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">实践应用并巩固</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <h4 class="font-semibold mb-1">第5天</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">系统性回顾前4天内容</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <h4 class="font-semibold mb-1">第8天</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">实战项目练习</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <h4 class="font-semibold mb-1">第15天</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">综合知识点检测</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <h4 class="font-semibold mb-1">第30天</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">项目实战挑战</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <div class="flex items-center mb-6">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: var(--color-primary-light);">
+              <i class="fas fa-book-reader text-xl text-white"></i>
+            </div>
+            <h3 class="text-xl font-bold">SQ3R实施方案</h3>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold mb-1">Survey（概览）</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">浏览StarRocks官方文档目录结构，查看技术架构图和核心特性列表</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-1">Question（提问）</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">针对每个章节提出3-5个问题，使用AI工具生成关键问题清单</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-1">Read（阅读）</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">深入阅读官方文档和教程，观看视频教程并做笔记</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-1">Recite（复述）</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">不看笔记向AI工具复述所学内容，录制语音笔记解释关键概念</p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-1">Review（复习）</h4>
+              <p class="text-sm" style="color: var(--color-text-light);">对照官方文档检查理解偏差，使用知识图谱连接各知识点</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6 mb-10">
+        <h3 class="text-xl font-bold mb-6">内化检验标准</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <h4 class="font-semibold mb-3 flex items-center">
+              <i class="fas fa-brain mr-2" style="color: var(--color-primary);"></i>
+              理解程度指标
+            </h4>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够不看文档解释StarRocks的核心架构</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够描述StarRocks适用场景和优势</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够解释StarRocks与其他OLAP系统的区别</span>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-semibold mb-3 flex items-center">
+              <i class="fas fa-laptop-code mr-2" style="color: var(--color-primary);"></i>
+              应用能力评估
+            </h4>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够独立配置StarRocks开发环境</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够编写优化的SQL查询</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够构建简单的数据分析应用</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够处理常见错误和异常</span>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-semibold mb-3 flex items-center">
+              <i class="fas fa-lightbulb mr-2" style="color: var(--color-primary);"></i>
+              创新思维表现
+            </h4>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够设计StarRocks的创新使用场景</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够结合业务场景优化查询性能</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle mt-1 mr-2" style="color: var(--color-secondary);"></i>
+                <span>能够提出改进StarRocks应用架构的建议</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 实践项目建议 -->
+    <section id="projects" class="mb-20 lazy-section">
+      <h2 class="text-3xl font-bold mb-8 flex items-center">
+        <i class="fas fa-laptop-code mr-3" style="color: var(--color-primary);"></i>
+        实践项目建议
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card p-6 hover:scale-[1.02] transition-all">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4" style="background-color: #dcfce7; color: #166534;">入门级</span>
+          <h3 class="text-xl font-bold mb-3">简单数据仪表板</h3>
+          <p class="mb-4 text-sm" style="color: var(--color-text-light);">构建一个基础的数据展示仪表板，学习StarRocks的基本操作和查询功能。</p>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>使用StarRocks存储和查询数据</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>使用前端框架展示分析结果</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>实现基本的筛选和排序功能</span>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+              <span class="text-xs" style="color: var(--color-text-light);">预计完成时间</span>
+              <span class="text-xs font-medium">2-3天</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6 hover:scale-[1.02] transition-all">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4" style="background-color: #ffedd5; color: #c2410c;">进阶级</span>
+          <h3 class="text-xl font-bold mb-3">电商数据分析系统</h3>
+          <p class="mb-4 text-sm" style="color: var(--color-text-light);">构建电商数据分析平台，处理大规模数据集并进行复杂查询优化。</p>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>导入大规模电商交易数据集</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>构建实时销售分析管道</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>优化复杂查询性能</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>实现多维分析和可视化</span>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+              <span class="text-xs" style="color: var(--color-text-light);">预计完成时间</span>
+              <span class="text-xs font-medium">1-2周</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6 hover:scale-[1.02] transition-all">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4" style="background-color: #fee2e2; color: #b91c1c;">挑战级</span>
+          <h3 class="text-xl font-bold mb-3">多源数据整合分析平台</h3>
+          <p class="mb-4 text-sm" style="color: var(--color-text-light);">构建高级数据分析平台，整合多种数据源并实现高性能查询服务。</p>
+          <div class="space-y-2 mb-4">
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>集成多种数据源（MySQL、Kafka等）</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>构建复杂ETL流程</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>实现高性能查询服务</span>
+            </div>
+            <div class="flex items-start text-sm">
+              <i class="fas fa-tasks mt-1 mr-2" style="color: var(--color-primary);"></i>
+              <span>打造高级可视化报表系统</span>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+              <span class="text-xs" style="color: var(--color-text-light);">预计完成时间</span>
+              <span class="text-xs font-medium">3-4周</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 学习资源推荐 -->
+    <section class="mb-20 lazy-section">
+      <h2 class="text-3xl font-bold mb-8 flex items-center">
+        <i class="fas fa-bookmark mr-3" style="color: var(--color-primary);"></i>
+        学习资源推荐
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card p-6">
+          <h3 class="text-xl font-bold mb-4 flex items-center">
+            <i class="fas fa-file-alt mr-2" style="color: var(--color-primary);"></i>
+            官方资源
+          </h3>
+          <ul class="space-y-3">
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://docs.starrocks.io/zh/docs/introduction/" target="_blank" class="hover:underline">StarRocks官方文档</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://github.com/StarRocks/starrocks" target="_blank" class="hover:underline">StarRocks GitHub仓库</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://starrocks.io/blog" target="_blank" class="hover:underline">官方技术博客</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://starrocks.io/community" target="_blank" class="hover:underline">StarRocks社区</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-xl font-bold mb-4 flex items-center">
+            <i class="fas fa-users mr-2" style="color: var(--color-primary);"></i>
+            社区资源
+          </h3>
+          <ul class="space-y-3">
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://stackoverflow.com/questions/tagged/starrocks" target="_blank" class="hover:underline">StackOverflow问答</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://www.zhihu.com/topic/21606737/hot" target="_blank" class="hover:underline">知乎StarRocks话题</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://space.bilibili.com/1292336123" target="_blank" class="hover:underline">B站官方账号视频</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://juejin.cn/search?query=StarRocks" target="_blank" class="hover:underline">掘金社区文章</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-xl font-bold mb-4 flex items-center">
+            <i class="fas fa-tools mr-2" style="color: var(--color-primary);"></i>
+            学习工具
+          </h3>
+          <ul class="space-y-3">
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://flowus.cn" target="_blank" class="hover:underline">FlowUs：构建StarRocks知识库</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://mubu.com" target="_blank" class="hover:underline">幕布：制作StarRocks思维导图</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://www.notion.so" target="_blank" class="hover:underline">Notion：管理学习进度和笔记</a>
+            </li>
+            <li class="flex items-start">
+              <i class="fas fa-external-link-alt mt-1 mr-2" style="color: var(--color-secondary);"></i>
+              <a href="https://www.aliyun.com/product/ecs" target="_blank" class="hover:underline">云服务器：搭建StarRocks测试环境</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="absolute bottom-0 w-full py-6 border-t" style="border-color: var(--color-card-border); background-color: var(--color-background);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="mb-4 md:mb-0">
+          <p class="text-sm" style="color: var(--color-text-light);">
+            作者：徐凯 | © 2025 StarRocks学习方案
+          </p>
+        </div>
+        <div class="flex space-x-4">
+          <a href="#" class="text-gray-400 hover:text-gray-500">
+            <span class="sr-only">GitHub</span>
+            <i class="fab fa-github text-xl"></i>
+          </a>
+          <a href="#" class="text-gray-400 hover:text-gray-500">
+            <span class="sr-only">知乎</span>
+            <i class="fab fa-zhihu text-xl"></i>
+          </a>
+          <a href="#" class="text-gray-400 hover:text-gray-500">
+            <span class="sr-only">微信</span>
+            <i class="fab fa-weixin text-xl"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 返回顶部按钮 -->
+  <button id="back-to-top" class="fixed bottom-20 right-6 p-3 rounded-full shadow-lg opacity-0 transition-opacity duration-300 z-50" style="background-color: var(--color-primary); color: white;">
+    <i class="fas fa-arrow-up"></i>
+  </button>
+
+  <script>
+    // 深色模式切换
+    const htmlElement = document.documentElement;
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    
+    // 检查系统偏好
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // 初始化主题
+    if (prefersDarkMode) {
+      htmlElement.classList.add('dark');
+      themeIcon.classList.remove('fa-moon');
+      themeIcon.classList.add('fa-sun');
+    }
+    
+    // 切换主题
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      
+      if (htmlElement.classList.contains('dark')) {
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+      } else {
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+      }
+    });
+
+    // 导航链接高亮
+    document.addEventListener('DOMContentLoaded', () => {
+      const navLinks = document.querySelectorAll('.nav-link');
+      const sections = document.querySelectorAll('section, header');
+      
+      function setActiveLink() {
+        let current = '';
+        
+        sections.forEach(section => {
+          const sectionTop = section.offsetTop;
+          const sectionHeight = section.clientHeight;
+          
+          if (pageYOffset >= sectionTop - 200) {
+            current = section.getAttribute('id');
+          }
+        });
+        
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === `#${current}`) {
+            link.classList.add('active');
+          }
+        });
+      }
+      
+      window.addEventListener('scroll', setActiveLink);
+      setActiveLink();
+    });
+
+    // 返回顶部按钮
+    const backToTopButton = document.getElementById('back-to-top');
+    
+    window.addEventListener('scroll', () => {
+      if (window.pageYOffset > 300) {
+        backToTopButton.style.opacity = '1';
+      } else {
+        backToTopButton.style.opacity = '0';
+      }
+    });
+    
+    backToTopButton.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+
+    // 阅读进度
+    const readingProgress = document.getElementById('reading-progress');
+    
+    window.addEventListener('scroll', () => {
+      const totalHeight = document.body.scrollHeight - window.innerHeight;
+      const progress = (window.pageYOffset / totalHeight) * 100;
+      readingProgress.style.width = `${progress}%`;
+    });
+
+    // 懒加载效果
+    const lazySections = document.querySelectorAll('.lazy-section');
+    
+    const lazyLoad = () => {
+      const triggerBottom = window.innerHeight * 0.8;
+      
+      lazySections.forEach(section => {
+        const sectionTop = section.getBoundingClientRect().top;
+        
+        if (sectionTop < triggerBottom) {
+          section.classList.add('visible');
+        }
+      });
+    };
+    
+    window.addEventListener('scroll', lazyLoad);
+    window.addEventListener('load', lazyLoad);
+    
+    // 复选框状态保存
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    
+    // 加载保存的状态
+    checkboxes.forEach(checkbox => {
+      const savedState = localStorage.getItem(checkbox.id);
+      if (savedState === 'true') {
+        checkbox.checked = true;
+      }
+    });
+    
+    // 保存状态
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        localStorage.setItem(checkbox.id, checkbox.checked);
+      });
+    });
+
+    // 平滑滚动
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const targetId = this.getAttribute('href');
+        const targetElement = document.querySelector(targetId);
+        
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 80,
+            behavior: 'smooth'
+          });
+        }
+      });
+    });
+
+    // 初始化页面，确保链接和锚点工作正常
+    window.addEventListener('load', function() {
+      // 检查URL是否包含锚点
+      if (window.location.hash) {
+        const targetId = window.location.hash;
+        const targetElement = document.querySelector(targetId);
+        
+        if (targetElement) {
+          // 延迟一下滚动，确保页面已完全加载
+          setTimeout(() => {
+            window.scrollTo({
+              top: targetElement.offsetTop - 80,
+              behavior: 'smooth'
+            });
+          }, 100);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
